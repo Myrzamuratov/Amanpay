@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="form_card">
+      <h2>Request for purchase</h2>
+      <ul class="form_card_fields">
+        <li>
+          <select
+            id="currency"
+            class="form-select"
+            aria-label="Default select example"
+          >
+            <option selected value="PKR">PKR</option>
+            <option value="BDT">BDT</option>
+          </select>
+        </li>
+        <li>
+          <div class="form-floating mb-3">
+            <input
+              type="number"
+              step="0.01"
+              class="form-control"
+              id="merchantId"
+              placeholder="123"
+            />
+            <label for="merchantId">Merchant ID</label>
+          </div>
+          <div class="form-floating mb-3">
+            <input
+              type="text"
+              class="form-control"
+              id="secretkey"
+              placeholder="Secret key"
+            />
+            <label for="secretkey">Secret key</label>
+          </div>
+          <div class="form-floating mb-3">
+            <input
+              type="number"
+              class="form-control"
+              id="amount"
+              placeholder="Password"
+            />
+            <label for="amount">Amount</label>
+          </div>
+          <div class="form-floating mb-3">
+            <input
+              type="email"
+              class="form-control"
+              id="customerEmail"
+              placeholder="example@mail.com"
+            />
+            <label for="custometEmail">Customer email</label>
+          </div>
+        </li>
+      </ul>
+      <button class="btn btn-primary" id="form_button">Button</button>
+    </div>
+    <script>
+      const button = document.getElementById("form_button");
+      const merchantId = document.getElementById("merchantId");
+      const secretkey = document.getElementById("secretkey");
+      const amount = document.getElementById("amount");
+      const customerEmail = document.getElementById("customerEmail");
+      const currency = document.getElementById("currency");
+
+      async function generateHash({
+        amount,
+        currency,
+        merchantId,
+        paymentId,
+        secretkey,
+      }) {
+        const data = `${amount}${currency}${merchantId}${paymentId}${secretkey}`;
+        const encoder = new TextEncoder();
+        const dataBuffer = encoder.encode(data);
+        const hashBuffer = await crypto.subtle.digest("SHA-512", dataBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        console.log(data);
+        return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+      }
+
+      button.addEventListener("click", async () => {
+        console.log(amount.value);
+
+        function generateUniqueId(length = 10) {
+          const chars =
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+          let result = "";
+          for (let i = 0; i < length; i++) {
+            const randomIndex = Math.floor(Math.random() * chars.length);
+            result += chars[randomIndex];
+          }
+          return result;
+        }
+
+        const obj = {
+          merchantId: Number(merchantId.value),
+          paymentId: generateUniqueId(),
+          amount: amount.value,
+          currency: currency.value,
+          customerEmail: customerEmail.value,
+        };
+        console.log(obj);
+
+        const hash = await generateHash({
+          amount: obj.amount,
+          currency: obj.currency,
+          merchantId: obj.merchantId,
+          paymentId: obj.paymentId,
+          secretkey: secretkey.value,
+        });
+        console.log(hash);
+
+        try {
+          const response = await axios.post(
+            "https://gateway.amanpay.io/payments/purchases/initiate",
+            obj,
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `${hash}`,
+              },
+            }
+          );
+
+          console.log("Ответ сервера:", response.data);
+          alert("Платёж успешно инициирован!");
+        } catch (error) {
+          console.error("Ошибка при отправке:", error.response?.data || error);
+          alert("Ошибка при инициации платежа. Проверь консоль.");
+        }
+      });
+    </script>
+  </body>
+</html>

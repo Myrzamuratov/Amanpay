@@ -1,0 +1,11 @@
+* {
+  list-style-type: none;
+  text-decoration: none;
+  width: 100%;
+
+  margin: auto;
+}
+.form_card {
+  margin: auto;
+  text-align: center;
+}
